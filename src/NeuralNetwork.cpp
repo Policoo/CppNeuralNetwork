@@ -11,6 +11,17 @@
 
 using namespace neuralNet;
 
+// <-- HELPER FUNCTIONS --> //
+
+int findCorrectActivationIndex(const std::vector<double>& vec) {
+    for (int i = 0; i < vec.size(); i++) {
+        if (vec[i] == 1) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 // <-- LAYER IMPLEMENTATION --> //
 
 Layer::Layer(int numNodesIn, int numNodesOut) {
@@ -128,9 +139,13 @@ void Layer::printNodes() {
 void Layer::applyGradients(double learnRate) {
     for (int nodeOut = 0; nodeOut < numNodesOut; nodeOut++) {
         biases[nodeOut] -= costGradientB[nodeOut] * learnRate;
+        //std::cout << "BIAS THIGN : " << costGradientB[nodeOut] * learnRate << std::endl;
+        costGradientB[nodeOut] = 0;
 
         for (int nodeIn = 0; nodeIn < numNodesIn; nodeIn++) {
             weights[nodeIn][nodeOut] -= costGradientW[nodeIn][nodeOut] * learnRate;
+            //std::cout << "WEIGHT THIGN : " << costGradientW[nodeIn][nodeOut] << std::endl;
+            costGradientW[nodeIn][nodeOut] = 0;
         }
     }
 }
@@ -151,8 +166,8 @@ std::vector<double> Layer::hiddenLayerGradientProduct(Layer oldLayer, std::vecto
     std::vector<double> gradientProducts(length());
 
     for (int newGradientIndex = 0; newGradientIndex < gradientProducts.size(); newGradientIndex++) {
-        double gradientProductValue = 0;
 
+        double gradientProductValue = 0;
         for (int oldGradientIndex = 0; oldGradientIndex < oldGradientProducts.size(); oldGradientIndex++) {
             //Partial derivative of the weighted input with respect to the input
             gradientProductValue += oldLayer.weights[newGradientIndex][oldGradientIndex]
@@ -167,11 +182,11 @@ std::vector<double> Layer::hiddenLayerGradientProduct(Layer oldLayer, std::vecto
 
 void Layer::calculateGradients(std::vector<double> gradientProducts) {
     for (int nodeOut = 0; nodeOut < numNodesOut; nodeOut++) {
-        for (int nodeIn = 0; nodeIn < numNodesIn; ++nodeIn) {
+        for (int nodeIn = 0; nodeIn < numNodesIn; nodeIn++) {
             costGradientW[nodeIn][nodeOut] += inputs[nodeIn] * gradientProducts[nodeOut];
         }
 
-        costGradientB[nodeOut] = gradientProducts[nodeOut];
+        costGradientB[nodeOut] += gradientProducts[nodeOut];
     }
 }
 
@@ -179,10 +194,10 @@ void Layer::calculateGradients(std::vector<double> gradientProducts) {
 
 // <-- NEURAL NETWORK IMPLEMENTATION --> //
 
-NeuralNetwork::NeuralNetwork(int *layerSizes, int numOfLayers) {
-    layers.resize(numOfLayers - 1);
-    for (int index = 0; index < numOfLayers - 1; index++) {
-        layers[index] = Layer(layerSizes[index], layerSizes[index + 1]);
+NeuralNetwork::NeuralNetwork(std::vector<int> layersInfo) {
+    layers.resize(layersInfo.size() - 1);
+    for (int index = 0; index < layersInfo.size() - 1; index++) {
+        layers[index] = Layer(layersInfo[index], layersInfo[index + 1]);
     }
 }
 
@@ -241,12 +256,19 @@ Layer NeuralNetwork::outputLayer() {
 }
 
 void NeuralNetwork::gradientDescent(std::vector<DataPoint> dataPoints) {
-    double learnRate = 0.1;
+    double learnRate = 1;
+    int correctAnswers = 0;
 
     for (auto &dataPoint: dataPoints) {
+        int choice = classify(dataPoint.getInputData());
+        //std::cout << choice << " ? " << findCorrectActivationIndex(dataPoint.getExpectedOutputs()) << " | ";
+        if (choice == findCorrectActivationIndex(dataPoint.getExpectedOutputs())) {
+            correctAnswers += 1;
+        }
         backPropagation(dataPoint.getInputData(), dataPoint.getExpectedOutputs());
     }
 
+    std::cout << "Accuracy: " << correctAnswers << " / " << dataPoints.size() << ", ";
     applyAllGradients(learnRate / dataPoints.size());
 }
 
@@ -259,6 +281,10 @@ void NeuralNetwork::applyAllGradients(double learnRate) {
 void NeuralNetwork::backPropagation(std::vector<double> inputs, std::vector<double> expectedOutputs) {
     //Run the inputs through the network
     calculateOutputs(std::move(inputs));
+//    for (auto &var : outputLayer().getActivations()) {
+//        std::cout << var << ", ";
+//    }
+//    std::cout << std::endl;
 
     //Update the gradients of the output layer
     std::vector<double> gradientProducts = outputLayer().outputLayerGradientProduct(std::move(expectedOutputs));

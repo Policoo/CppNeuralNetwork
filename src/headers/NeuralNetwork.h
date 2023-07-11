@@ -132,7 +132,7 @@ namespace neuralNet {
 
     public:
         //Initializes the neural network with the specified number of layers
-        NeuralNetwork(int layerSizes[], int numOfLayers);
+        NeuralNetwork(std::vector<int> layersInfo);
 
         //Gets the output node with the highest activation value
         int classify(std::vector<double> inputs);

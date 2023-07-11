@@ -20,8 +20,8 @@ std::vector<std::vector<double>> extractData(const std::string &datasetPath) {
         std::istringstream ss(line);
         std::string value;
         while (std::getline(ss, value, ',')) {
-            //dataLine.push_back(std::stoi(value) / 255.0);
-            dataLine.push_back(std::stoi(value));
+            dataLine.push_back(std::stoi(value) / 255.0);
+            //dataLine.push_back(std::stoi(value));
         }
         data.push_back(dataLine);
     }
@@ -34,7 +34,7 @@ std::vector<std::vector<double>> extractExpectedOutputs(std::vector<std::vector<
     for (auto &dataLine: data) {
         //Initialize all values as 0 and set the correct node to activation 1
         std::vector<double> expectedOutput(outputsSize, 0);
-        expectedOutput[dataLine[0]] = 1;
+        expectedOutput[dataLine[0] * 255.0] = 1;
 
         //Add expectedOutput and erase the expected output from the dataset
         expectedOutputs.push_back(expectedOutput);
@@ -66,11 +66,11 @@ std::vector<T> getRandomSubset(std::vector<T> largerVector, int subsetSize) {
 }
 
 int main() {
-    std::string datasetPath = R"(C:\Users\1flor\CLionProjects\NeuralNetwork\src\dataset\fruits\fruits_train.csv)";
+    std::string datasetPath = R"(C:\Users\1flor\CLionProjects\CppNeuralNetwork\src\dataset\mnistDigits\mnist_test.csv)";
     std::cout << "Processing data..." << std::endl;
     std::vector<std::vector<double>> data = extractData(datasetPath);
     std::cout << "Creating expected outputs..." << std::endl;
-    std::vector<std::vector<double>> expectedOutputs = extractExpectedOutputs(data, 2);
+    std::vector<std::vector<double>> expectedOutputs = extractExpectedOutputs(data, 10);
     std::cout << "Done" << std::endl;
 
     //Create and populate the data points
@@ -79,17 +79,17 @@ int main() {
         dataPoints.emplace_back(data[index], expectedOutputs[index]);
     }
 
-    //int layerSizes[4] = {784, 30, 20, 10};
-    int layerSizes[4] = {2, 3, 3, 2};
-    neuralNet::NeuralNetwork neuralNetwork(layerSizes, 4);
+    //std::vector<int> layerSizes = {2, 2};
+    std::vector<int> layerSizes = {784, 100, 10};
+    neuralNet::NeuralNetwork neuralNetwork(layerSizes);
 
-    std::vector<neuralNet::DataPoint> dataPoint = getRandomSubset(dataPoints, 50);
+    std::vector<neuralNet::DataPoint> dataPoint = getRandomSubset(dataPoints, 512);
     std::cout << "Initial cost: " << neuralNetwork.cost(dataPoint) << std::endl;
 
-    for (int iteration = 0; iteration < 10000; iteration++) {
+    for (int iteration = 0; iteration < 1000; iteration++) {
         neuralNetwork.gradientDescent(dataPoint);
         std::cout << "Cost: " <<  neuralNetwork.cost(dataPoint) << std::endl;
-        dataPoint = getRandomSubset(dataPoints, 50);
+        dataPoint = getRandomSubset(dataPoints, 512);
     }
 
     std::cout << "Cost: " <<  neuralNetwork.cost(dataPoint) << std::endl;
